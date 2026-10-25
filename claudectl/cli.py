@@ -23,7 +23,7 @@ from pathlib import Path
 try:
     from . import __version__ as VERSION
 except ImportError:  # run as a standalone script (claudectl install copies this file)
-    VERSION = "1.0.0"
+    VERSION = "1.0.1"
 
 APP = "claudectl"
 DIST = "claude-profile"  # the PyPI package name
@@ -286,7 +286,12 @@ def protect_secret(profile, plain):
         enc = _dpapi(ctypes.windll.crypt32.CryptProtectData, plain.encode("utf-8"))
         return {"store": "dpapi", "data": base64.b64encode(enc).decode()}
     if IS_MAC:
-        run_capture(["security", "add-generic-password", "-U", "-s", APP, "-a", profile, "-w", plain])
+        # 'security -i' reads the command from stdin, so the key never shows up in the process list.
+        q = lambda s: '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+        r = subprocess.run(["security", "-i"], input=f"add-generic-password -U -s {q(APP)} -a {q(profile)} -w {q(plain)}\n",
+                           capture_output=True, text=True)
+        if r.returncode != 0 or "error" in (r.stdout + r.stderr).lower():
+            fail(f"security failed: {(r.stderr or r.stdout).strip()}")
         return {"store": "keychain"}
     if shutil.which("secret-tool"):
         r = subprocess.run(["secret-tool", "store", "--label", f"{APP} {profile}", "service", APP, "profile", profile],

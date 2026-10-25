@@ -50,12 +50,17 @@ def test_rejects_bad_names(cli, name):
 def test_secret_round_trip(cli):
     try:
         add(cli, "ds", "deepseek", "--key", "sk-test-123")
-    except cli.CliError as e:  # e.g. a locked macOS keychain on a CI runner
+    except cli.CliError as e:  # e.g. a locked macOS keychain
+        if os.environ.get("CI"):
+            raise  # CI runners have a usable store on every OS; a failure here is a real bug
         pytest.skip(f"no usable secret store here: {e}")
     p = cli.get_profile("ds")
-    assert "sk-test-123" not in json.dumps(p)
-    assert cli.unprotect_secret("ds", p["secret"]) == "sk-test-123"
-    assert p["env"]["ANTHROPIC_MODEL"] == "deepseek-flash[1m]"
+    try:
+        assert "sk-test-123" not in json.dumps(p)
+        assert cli.unprotect_secret("ds", p["secret"]) == "sk-test-123"
+        assert p["env"]["ANTHROPIC_MODEL"] == "deepseek-flash[1m]"
+    finally:
+        cli.forget_secret("ds", p["secret"])  # don't leave test entries in a real keychain
 
 
 def test_profile_env_is_isolated(cli, monkeypatch):

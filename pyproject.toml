@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-profile"
-version = "1.0.1"
+version = "1.0.2"
 description = "Per-customer profiles for Claude Code and Claude Desktop: separate logins, AI platforms, MCP servers, skills and history, side by side."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,9 +30,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/CloudOpsWorld/claudectl"
-Repository = "https://github.com/CloudOpsWorld/claudectl"
-Issues = "https://github.com/CloudOpsWorld/claudectl/issues"
+Homepage = "https://github.com/CloudOpsWorld/claude-profile"
+Repository = "https://github.com/CloudOpsWorld/claude-profile"
+Issues = "https://github.com/CloudOpsWorld/claude-profile/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=9.1.1", "ruff>=0.15.21", "mypy>=2.3.0", "build>=1.5.1"]

@@ -23,12 +23,12 @@ pipx install claude-profile      # or: uv tool install claude-profile   or: pip 
 claudectl install               # optional: adds the "Claude Profiles" Start menu picker on Windows
 ```
 
-**Without Python:** download a standalone binary from [Releases](https://github.com/CloudOpsWorld/claudectl/releases) and run it once with `install`, which puts it in `~/.local/bin`:
+**Without Python:** download a standalone binary from [Releases](https://github.com/CloudOpsWorld/claude-profile/releases) and run it once with `install`, which puts it in `~/.local/bin`:
 - `claudectl-windows-amd64.exe`
 - `claudectl-macos-arm64`
 - `claudectl-linux-amd64`
 
-Each release has `SHA256SUMS` and build provenance you can check with `gh attestation verify <file> --repo CloudOpsWorld/claudectl`.
+Each release has `SHA256SUMS` and build provenance you can check with `gh attestation verify <file> --repo CloudOpsWorld/claude-profile`.
 
 **From source:**
 

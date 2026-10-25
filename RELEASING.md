@@ -35,7 +35,7 @@ organization:
    publisher** (or **Your account → Publishing** for a personal project) with:
    - PyPI project name: `claude-profile`
    - Owner: `CloudOpsWorld`
-   - Repository: `claudectl`
+   - Repository: `claude-profile`
    - Workflow name: `release.yml`
    - Environment: `pypi`
 2. In the GitHub repo, the **Environment** named `pypi` must exist

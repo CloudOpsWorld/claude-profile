@@ -23,7 +23,7 @@ from pathlib import Path
 try:
     from . import __version__ as VERSION
 except ImportError:  # run as a standalone script (claudectl install copies this file)
-    VERSION = "1.0.1"
+    VERSION = "1.0.2"
 
 APP = "claudectl"
 DIST = "claude-profile"  # the PyPI package name

@@ -1,0 +1,2 @@
+include README.md RELEASING.md LICENSE
+include scripts/claudectl_entry.py scripts/demo.ps1

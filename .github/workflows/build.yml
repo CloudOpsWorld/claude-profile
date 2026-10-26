@@ -37,14 +37,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: claudectl-linux-amd64
-            binary: claudectl
+            artifact_name: claude-profile-linux-amd64
+            binary: claude-profile
           - os: macos-latest
-            artifact_name: claudectl-macos-arm64
-            binary: claudectl
+            artifact_name: claude-profile-macos-arm64
+            binary: claude-profile
           - os: windows-latest
-            artifact_name: claudectl-windows-amd64.exe
-            binary: claudectl.exe
+            artifact_name: claude-profile-windows-amd64.exe
+            binary: claude-profile.exe
     defaults:
       run:
         shell: bash
@@ -65,11 +65,11 @@ jobs:
           pip install .
 
       - name: Build binary
-        run: pyinstaller --onefile --name claudectl --clean --paths . scripts/claudectl_entry.py
+        run: pyinstaller --onefile --name claude-profile --clean --paths . scripts/claude_profile_entry.py
 
       - name: Test binary
         env:
-          CLAUDECTL_HOME: ${{ runner.temp }}/claudectl-smoke
+          CLAUDE_PROFILE_HOME: ${{ runner.temp }}/claude-profile-smoke
         run: |
           chmod +x dist/${{ matrix.binary }}
           ./dist/${{ matrix.binary }} --version

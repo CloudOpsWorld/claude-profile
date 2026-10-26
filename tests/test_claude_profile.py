@@ -9,10 +9,10 @@ import pytest
 
 @pytest.fixture
 def cli(tmp_path, monkeypatch):
-    """claudectl with its data folder in a temp dir and no inherited Claude settings."""
-    monkeypatch.setenv("CLAUDECTL_HOME", str(tmp_path / "home"))
-    monkeypatch.delenv("CLAUDECTL_DESKTOP_CONFIG", raising=False)
-    import claudectl.cli as mod
+    """claude-profile with its data folder in a temp dir and no inherited Claude settings."""
+    monkeypatch.setenv("CLAUDE_PROFILE_HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("CLAUDE_PROFILE_DESKTOP_CONFIG", raising=False)
+    import claude_profile.cli as mod
     mod = importlib.reload(mod)
     return mod
 
@@ -24,8 +24,8 @@ def add(cli, name, provider="claude", *extra):
 # ------------------------------------------------------------------ profiles
 
 def test_version_matches_package(cli):
-    import claudectl
-    assert cli.VERSION == claudectl.__version__
+    import claude_profile
+    assert cli.VERSION == claude_profile.__version__
 
 
 def test_add_and_list(cli, capsys):
@@ -73,7 +73,7 @@ def test_profile_env_is_isolated(cli, monkeypatch):
     assert "ANTHROPIC_BASE_URL" not in env and "CLAUDE_CODE_SESSION_ID" not in env and "OPENAI_API_KEY" not in env
     assert env["CLAUDE_CODE_GIT_BASH_PATH"] == "keep-me"
     assert env["CLAUDE_CONFIG_DIR"] == str(cli.config_dir("acme"))
-    assert env["CLAUDECTL_PROFILE"] == "acme"
+    assert env["CLAUDE_PROFILE"] == "acme"
     default_env = cli.profile_env(cli.get_profile("default"))
     assert "CLAUDE_CONFIG_DIR" not in default_env and "ANTHROPIC_BASE_URL" not in default_env
 
@@ -93,7 +93,7 @@ def test_bindings_pick_the_deepest_folder(cli, tmp_path):
 
 
 def test_parse_options_keeps_claude_args():
-    from claudectl.cli import parse_options
+    from claude_profile.cli import parse_options
     opt, pos = parse_options(["acme", "--provider", "deepseek", "--set", "model=x", "--bind"])
     assert pos == ["acme"] and opt["provider"] == "deepseek" and opt["set"] == {"model": "x"} and opt["bind"]
 
@@ -103,7 +103,7 @@ def test_parse_options_keeps_claude_args():
 def test_desktop_switch_round_trip(cli, tmp_path, monkeypatch):
     cfg = tmp_path / "desktop.json"
     cfg.write_text(json.dumps({"preferences": {"a": 1}, "mcpServers": {"personal": {"command": "x"}}}))
-    monkeypatch.setenv("CLAUDECTL_DESKTOP_CONFIG", str(cfg))
+    monkeypatch.setenv("CLAUDE_PROFILE_DESKTOP_CONFIG", str(cfg))
     add(cli, "acme")
     add(cli, "globex")
     cli.dispatch(["desktop", "acme"])

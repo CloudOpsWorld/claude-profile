@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""claudectl - per-customer profiles for Claude Code and Claude Desktop.
+"""claude-profile - per-customer profiles for Claude Code and Claude Desktop.
 
 Each profile is its own Claude Code config folder (login, MCP servers, skills,
 plugins, history, memory), selected per process through CLAUDE_CONFIG_DIR, so
@@ -22,25 +22,26 @@ from pathlib import Path
 
 try:
     from . import __version__ as VERSION
-except ImportError:  # run as a standalone script (claudectl install copies this file)
-    VERSION = "1.0.2"
+except ImportError:  # run as a standalone script (claude-profile install copies this file)
+    VERSION = "2.0.0"
 
-APP = "claudectl"
-DIST = "claude-profile"  # the PyPI package name
+APP = "claude-profile"
+DIST = APP  # PyPI package name (same as the command)
+MODULE = "claude_profile"  # Python module name
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
 FROZEN = bool(getattr(sys, "frozen", False))  # PyInstaller binary
 SELF = sys.executable if FROZEN else os.path.abspath(__file__)
 
-# 'claudectl --home <dir> ...' uses another data folder. New terminal tabs get
+# 'claude-profile --home <dir> ...' uses another data folder. New terminal tabs get
 # their environment from the terminal app, not from us, so they are passed this.
 if len(sys.argv) > 2 and sys.argv[1] == "--home":
-    os.environ["CLAUDECTL_HOME"] = sys.argv[2]
+    os.environ["CLAUDE_PROFILE_HOME"] = sys.argv[2]
     del sys.argv[1:3]
 
-# ~/.claudectl on every OS, next to ~/.claude. (Not AppData: Microsoft Store
+# ~/.claude-profile on every OS, next to ~/.claude. (Not AppData: Microsoft Store
 # Python redirects new files there into a private folder Claude can't see.)
-HOME = Path(os.environ.get("CLAUDECTL_HOME") or Path.home() / ".claudectl")
+HOME = Path(os.environ.get("CLAUDE_PROFILE_HOME") or Path.home() / ".claude-profile")
 PROFILES = HOME / "profiles"
 BINDINGS_FILE = HOME / "bindings.json"
 ACTIVE_FILE = HOME / "active.txt"
@@ -55,11 +56,11 @@ CLAUDE_SUBCOMMANDS = {"mcp", "plugin", "config", "agents"}
 # Variables that must never leak from the parent shell (or from a Claude
 # Desktop session the shell was started from) into a profile's session.
 SCRUB = re.compile(r"^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$|CLAUDE_CONFIG_DIR$|CLAUDE_AGENT_SDK|CLAUDE_PID$|"
-                   r"OPENAI_|CLAUDECTL_PROFILE$|CLOUD_ML_REGION$)", re.I)
+                   r"OPENAI_|CLAUDE_PROFILE$|CLOUD_ML_REGION$)", re.I)
 SCRUB_KEEP = {"CLAUDE_CODE_GIT_BASH_PATH"}
 NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
 
-# Built-in AI platforms. Add or override entries (same "id") in ~/.claudectl/providers.json.
+# Built-in AI platforms. Add or override entries (same "id") in ~/.claude-profile/providers.json.
 BUILTIN_PROVIDERS = [
     {"id": "claude", "label": "Claude subscription (Pro / Max / Team / Enterprise) - browser sign-in", "secret": False,
      "prompts": [{"key": "org", "label": "Organization UUID to lock sign-in to (optional, Team/Enterprise)", "default": ""}],
@@ -245,11 +246,11 @@ def self_cmd():
     if FROZEN:
         return [sys.executable]
     if __package__ and not SELF_COPY:
-        return [sys.executable, "-m", APP]
+        return [sys.executable, "-m", MODULE]
     return [sys.executable, SELF]
 
 
-# True once 'claudectl install' has copied this file to ~/.claudectl/app.
+# True once 'claude-profile install' has copied this file to ~/.claude-profile/app.
 SELF_COPY = False
 
 
@@ -435,7 +436,7 @@ def profile_env(p):
     cd = config_dir(p["name"])
     if cd:
         env["CLAUDE_CONFIG_DIR"] = str(cd)
-    env["CLAUDECTL_PROFILE"] = p["name"]
+    env["CLAUDE_PROFILE"] = p["name"]
     env["CLAUDE_CODE_DISABLE_TERMINAL_TITLE"] = "1"
     plain = None
     for k, v in (p.get("env") or {}).items():
@@ -518,7 +519,7 @@ def cmd_tab(name, directory):
     p = get_profile(name)
     directory = norm_path(directory) if directory else tab_folder(name)
     title = p["label"].replace(";", "").replace('"', "")
-    home_arg = ["--home", str(HOME)] if os.environ.get("CLAUDECTL_HOME") else []
+    home_arg = ["--home", str(HOME)] if os.environ.get("CLAUDE_PROFILE_HOME") else []
     inner = [*self_cmd(), *home_arg, "shell", name, "--start"]
     if IS_WIN:
         wt = shutil.which("wt")
@@ -555,7 +556,7 @@ def cmd_tab(name, directory):
 
 def status_line_setting(name):
     cmd = " ".join(f'"{Path(c).as_posix()}"' for c in self_cmd())
-    if os.environ.get("CLAUDECTL_HOME"):
+    if os.environ.get("CLAUDE_PROFILE_HOME"):
         cmd += f' --home "{HOME.as_posix()}"'
     return {"type": "command", "command": f"{cmd} statusline {name}"}
 
@@ -603,7 +604,7 @@ def parse_options(tokens):
 
 
 def create_profile(name, label, prov, values, plain_key=None, color=None):
-    """Writes a new profile; plain_key may be None for a key set later with 'claudectl key'."""
+    """Writes a new profile; plain_key may be None for a key set later with 'claude-profile key'."""
     values = dict(values)
     for q in prov.get("prompts") or []:
         values.setdefault(q["key"], expand(q.get("default", ""), values))
@@ -769,8 +770,8 @@ def cmd_status():
     n, reason = resolve_here(os.getcwd())
     p = get_profile(n)
     say(f"Here: '{n}' - {p['label']}, {p.get('summary', '')}  ({reason})")
-    if os.environ.get("CLAUDECTL_PROFILE"):
-        say(f"This shell is locked to: '{os.environ['CLAUDECTL_PROFILE']}'")
+    if os.environ.get("CLAUDE_PROFILE"):
+        say(f"This shell is locked to: '{os.environ['CLAUDE_PROFILE']}'")
     say(f"Active: '{active_name()}'")
     if read_text(DESKTOP_STATE):
         say(f"Claude Desktop: '{read_text(DESKTOP_STATE)}'")
@@ -797,8 +798,8 @@ def cmd_edit(name):
 # ------------------------------------------------------------------ Claude Desktop
 
 def desktop_config_path():
-    if os.environ.get("CLAUDECTL_DESKTOP_CONFIG"):
-        return Path(os.environ["CLAUDECTL_DESKTOP_CONFIG"])
+    if os.environ.get("CLAUDE_PROFILE_DESKTOP_CONFIG"):
+        return Path(os.environ["CLAUDE_PROFILE_DESKTOP_CONFIG"])
     cands = []
     if IS_WIN:
         local = os.environ.get("LOCALAPPDATA", "")
@@ -814,7 +815,7 @@ def desktop_config_path():
 
 
 def desktop_running():
-    if os.environ.get("CLAUDECTL_DESKTOP_CONFIG"):
+    if os.environ.get("CLAUDE_PROFILE_DESKTOP_CONFIG"):
         return False
     try:
         if IS_WIN:
@@ -955,8 +956,9 @@ def ignore_reason(p):
         return "home folder or drive root"
     if any(s in low + "/" for s in ("/appdata/local/temp/", "/tmp/", "/temp/", "scratch-workspaces", "remember-summarizer", "/var/folders/")):
         return "temporary folder"
-    if is_under(p, HOME) or is_under(p, Path.home() / ".claudectl") or "claudectl-demo" in low:
-        return "claudectl's own folders"
+    if (is_under(p, HOME) or is_under(p, Path.home() / ".claude-profile") or is_under(p, Path.home() / ".claudectl")
+            or "claude-profile-demo" in low or "claudectl-demo" in low):
+        return "claude-profile's own folders"
     if not os.path.isdir(p):
         return "folder no longer exists"
     return None
@@ -997,7 +999,7 @@ def old_switcher_leftovers():
     """Config folders, variables and profile lines left by earlier switcher scripts."""
     alt = []
     for d in Path.home().iterdir():
-        if d.is_dir() and d.name.startswith(".claude") and d.name not in (".claude",) and not d.name.startswith(".claudectl"):
+        if d.is_dir() and d.name.startswith(".claude") and d.name not in (".claude",) and not d.name.startswith((".claude-profile", ".claudectl")):
             if (d / ".claude.json").exists() or ((d / "settings.json").exists() and (d / "projects").is_dir()):
                 alt.append(str(d))
     persistent = persistent_claude_vars()
@@ -1155,7 +1157,7 @@ def suggest_plan(inv, src):
             if key.split("-")[0] in name.lower():
                 c["desktopMcp"].append(name)
     return {
-        "_help": ("Edit, then run: claudectl import --apply <this file>. Each customer becomes a profile (name = key). "
+        "_help": ("Edit, then run: claude-profile import --apply <this file>. Each customer becomes a profile (name = key). "
                   "Remove a customer to keep its folders in your default setup. 'everyProfile' items are copied "
                   "into every customer profile in this plan. Nothing is removed from the source unless you add --move."),
         "source": None if src.is_default else str(src.dir),
@@ -1401,7 +1403,7 @@ def apply_plan(plan, src, inv, dry=False, plugins=True):
                 info(f"    would create profile ({prov['id']})")
             else:
                 create_profile(name, c.get("label") or name, prov, {})
-                info(f"    created profile ({prov['id']})" + ("; set its key with: claudectl key " + name if prov.get("secret") else ""))
+                info(f"    created profile ({prov['id']})" + ("; set its key with: claude-profile key " + name if prov.get("secret") else ""))
         cfg = config_dir(name)
         prof = get_profile(name) if profile_exists(name) else {"provider": c.get("provider") or "claude"}
 
@@ -1469,7 +1471,7 @@ def apply_plan(plan, src, inv, dry=False, plugins=True):
                     dm.setdefault(s, inv["desktopMcp"][s])
             if not dry:
                 write_json(desktop_mcp_file(name), dm)
-            info(f"    Desktop MCP servers: {', '.join(c['desktopMcp'])} (active after 'claudectl desktop {name}')")
+            info(f"    Desktop MCP servers: {', '.join(c['desktopMcp'])} (active after 'claude-profile desktop {name}')")
         if every.get("plugins") and plugins and inv["plugins"]["enabled"]:
             info("    plugins:")
             install_plugins(name, inv["plugins"], dry)
@@ -1624,7 +1626,7 @@ def cmd_import(opt):
 # ------------------------------------------------------------------ install
 
 def bin_dir():
-    return Path(os.environ.get("CLAUDECTL_BIN") or Path.home() / ".local" / "bin")
+    return Path(os.environ.get("CLAUDE_PROFILE_BIN") or Path.home() / ".local" / "bin")
 
 
 def shim_path():
@@ -1632,7 +1634,7 @@ def shim_path():
 
 
 def app_copy():
-    return HOME / "app" / "claudectl.py"
+    return HOME / "app" / "claude_profile.py"
 
 
 def start_menu_shortcut():
@@ -1654,7 +1656,7 @@ def refresh_status_lines():
 
 
 def cmd_install():
-    """Puts 'claudectl' on PATH: the binary itself, or this script plus a launcher.
+    """Puts 'claude-profile' on PATH: the binary itself, or this script plus a launcher.
     Installed with pip/pipx/uv, the command already exists; only the extras are set up."""
     global SELF, SELF_COPY
     launcher = None
@@ -1670,7 +1672,7 @@ def cmd_install():
         menu_target, menu_args = launcher, "menu"
     elif __package__:
         found = shutil.which(APP)
-        menu_target, menu_args = (found, "menu") if found else (sys.executable, f"-m {APP} menu")
+        menu_target, menu_args = (found, "menu") if found else (sys.executable, f"-m {MODULE} menu")
         say(green(f"{APP} is installed as a Python package" + (f": {found}" if found else "")))
     else:
         target = app_copy()
@@ -1811,32 +1813,32 @@ def cmd_doctor():
     return 0
 
 
-HELP = """claudectl - Claude profiles per customer
+HELP = """claude-profile - Claude profiles per customer
 
-  claudectl                         start Claude Code with the profile for this folder (or the active one)
-  claudectl <profile> [args...]     start Claude Code with that profile; args go to claude
-                                    e.g.  claudectl acme --resume    claudectl acme mcp add jira -- npx ...
-  claudectl mcp|plugin ...          claude subcommand, run in this folder's profile
-  claudectl tab [profile] [dir]     open a new terminal tab locked to a profile
-  claudectl shell [profile]         open a shell locked to a profile (type 'claude' as often as you like)
-  claudectl add [name]              add a customer profile (guided)
-  claudectl list                    show profiles, bindings, active and Desktop profile
-  claudectl use [profile]           set the active profile for new sessions
-  claudectl bind <profile> [dir]    tie a folder (and subfolders) to a profile
-  claudectl unbind [dir]            remove the tie
-  claudectl status                  which profile applies here and why
-  claudectl desktop [profile]       switch Claude Desktop's MCP servers to a profile (Desktop must be closed)
-  claudectl desktop save [profile]  store Desktop's current MCP servers in a profile
-  claudectl key <profile>           replace a stored API key
-  claudectl edit <profile>          open the profile file (models, env)
-  claudectl remove <profile>        delete a profile and all its data
-  claudectl import                  sort your existing Claude setup into customer profiles (guided, copies only)
-  claudectl import --scan           just show what is in your current setup
-  claudectl import --plan FILE      write a suggested plan to edit;  --apply FILE [--move] [--dry-run] to run it
+  claude-profile                         start Claude Code with the profile for this folder (or the active one)
+  claude-profile <profile> [args...]     start Claude Code with that profile; args go to claude
+                                    e.g.  claude-profile acme --resume    claude-profile acme mcp add jira -- npx ...
+  claude-profile mcp|plugin ...          claude subcommand, run in this folder's profile
+  claude-profile tab [profile] [dir]     open a new terminal tab locked to a profile
+  claude-profile shell [profile]         open a shell locked to a profile (type 'claude' as often as you like)
+  claude-profile add [name]              add a customer profile (guided)
+  claude-profile list                    show profiles, bindings, active and Desktop profile
+  claude-profile use [profile]           set the active profile for new sessions
+  claude-profile bind <profile> [dir]    tie a folder (and subfolders) to a profile
+  claude-profile unbind [dir]            remove the tie
+  claude-profile status                  which profile applies here and why
+  claude-profile desktop [profile]       switch Claude Desktop's MCP servers to a profile (Desktop must be closed)
+  claude-profile desktop save [profile]  store Desktop's current MCP servers in a profile
+  claude-profile key <profile>           replace a stored API key
+  claude-profile edit <profile>          open the profile file (models, env)
+  claude-profile remove <profile>        delete a profile and all its data
+  claude-profile import                  sort your existing Claude setup into customer profiles (guided, copies only)
+  claude-profile import --scan           just show what is in your current setup
+  claude-profile import --plan FILE      write a suggested plan to edit;  --apply FILE [--move] [--dry-run] to run it
                                     (--from DIR imports another config folder; --move also takes it out of the source)
-  claudectl menu                    pick from a menu
-  claudectl doctor                  check the setup
-  claudectl install | uninstall     put claudectl on your PATH / take it off (profiles are kept)
+  claude-profile menu                    pick from a menu
+  claude-profile doctor                  check the setup
+  claude-profile install | uninstall     put claude-profile on your PATH / take it off (profiles are kept)
 
 Running sessions are never touched: a profile is chosen when a session starts."""
 

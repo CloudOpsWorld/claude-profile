@@ -43,11 +43,11 @@ jobs:
       - name: Validate __init__.py matches
         run: |
           PYPROJECT_VERSION="${{ steps.get-version.outputs.version }}"
-          INIT_VERSION=$(python -c "from claudectl import __version__; print(__version__)")
+          INIT_VERSION=$(python -c "from claude_profile import __version__; print(__version__)")
           echo "pyproject.toml: $PYPROJECT_VERSION"
           echo "__init__.py:    $INIT_VERSION"
           if [[ "$PYPROJECT_VERSION" != "$INIT_VERSION" ]]; then
-            echo "::error::Version mismatch: pyproject.toml ($PYPROJECT_VERSION) != claudectl/__init__.py ($INIT_VERSION)"
+            echo "::error::Version mismatch: pyproject.toml ($PYPROJECT_VERSION) != claude_profile/__init__.py ($INIT_VERSION)"
             exit 1
           fi
 
@@ -103,7 +103,7 @@ jobs:
       - name: Stage release assets
         run: |
           mkdir -p release
-          for name in claudectl-linux-amd64 claudectl-macos-arm64 claudectl-windows-amd64.exe; do
+          for name in claude-profile-linux-amd64 claude-profile-macos-arm64 claude-profile-windows-amd64.exe; do
             if [ -f "artifacts/$name/$name" ]; then
               cp "artifacts/$name/$name" "release/$name"
               chmod +x "release/$name"
@@ -125,9 +125,9 @@ jobs:
           # Keyless (Sigstore/OIDC) provenance for every shipped artifact —
           # verifiable with `gh attestation verify <file> --repo <owner>/<repo>`.
           subject-path: |
-            release/claudectl-linux-amd64
-            release/claudectl-macos-arm64
-            release/claudectl-windows-amd64.exe
+            release/claude-profile-linux-amd64
+            release/claude-profile-macos-arm64
+            release/claude-profile-windows-amd64.exe
             release/*.whl
             release/*.tar.gz
 
@@ -138,9 +138,9 @@ jobs:
           name: Release ${{ needs.check-version.outputs.tag }}
           generate_release_notes: true
           files: |
-            release/claudectl-linux-amd64
-            release/claudectl-macos-arm64
-            release/claudectl-windows-amd64.exe
+            release/claude-profile-linux-amd64
+            release/claude-profile-macos-arm64
+            release/claude-profile-windows-amd64.exe
             release/*.whl
             release/*.tar.gz
             release/SHA256SUMS

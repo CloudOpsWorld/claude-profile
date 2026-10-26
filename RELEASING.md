@@ -13,7 +13,7 @@ triggers a release.
 
 ## How a release happens
 
-1. Bump the version in **both** `pyproject.toml` and `claudectl/__init__.py`
+1. Bump the version in **both** `pyproject.toml` and `claude_profile/__init__.py`
    (the release workflow fails if they disagree).
 2. Commit and push to `main`.
 3. `release.yml` will:
